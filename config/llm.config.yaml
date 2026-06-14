@@ -1,0 +1,21 @@
+# PosterFlow AI 配置
+# API Key 仅从 config_path 指向的文件读取，请勿在此填写密钥
+
+config_path: ~/.config/llm.yaml
+
+vision:
+  provider: aliyun
+  model: qwen3-vl-plus
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  max_tokens: 2000
+
+image:
+  # 图生图：用 wan2.7-image 直接生成目标尺寸整图（无本地兜底）
+  outpaint_model: wan2.7-image
+  expand_model: wan2.7-image
+  outpaint_endpoint: /api/v1/services/aigc/image2image/image-synthesis
+  expand_endpoint: /api/v1/services/aigc/image2image/image-synthesis
+  task_endpoint: /api/v1/tasks
+  expand_prompt: 把主视觉海报适配为目标尺寸整图，铺满画布、补全背景，严格保持品牌调性、色彩、光影、材质与版式一致；不改写或新增任何文字、Logo、产品、人物、图形，不要水印、边框、伪影。
+  poll_interval_ms: 2500
+  task_timeout_ms: 180000
