@@ -48,7 +48,7 @@ export function FineTunePanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    buildFineTuneContext(masterImageDataUrl, masterWidth, masterHeight, layers, size, promptContext)
+    buildFineTuneContext(masterImageDataUrl, masterWidth, masterHeight, layers, size)
       .then((ctx) => {
         if (cancelled) return;
         setContext(ctx);
@@ -64,7 +64,7 @@ export function FineTunePanel({
     return () => {
       cancelled = true;
     };
-  }, [layers, masterHeight, masterImageDataUrl, masterWidth, size, promptContext]);
+  }, [layers, masterHeight, masterImageDataUrl, masterWidth, size]);
 
   const update = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));

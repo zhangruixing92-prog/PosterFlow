@@ -8,6 +8,27 @@ const FAMILY_LAYOUT_GUIDE: Record<SizeFamily, string> = {
   square: '方版构图：上方文案区、下方背景延展，整体均衡',
 };
 
+const FAMILY_BG_GUIDE: Record<SizeFamily, string> = {
+  portrait: '竖版：背景上松下实，预留上方文案区与下方主视觉区，过渡自然',
+  landscape: '横版/Banner：背景向左右两侧自然延展铺满，右侧预留文案区',
+  square: '方版：背景均衡延展铺满画布，预留上方文案区',
+};
+
+/**
+ * 背景扩展提示词：只把「已抹除元素的纯背景底板」延展到目标比例，
+ * 绝不生成文字/人物/Logo/产品/按钮——这些由本地合成阶段贴回。
+ */
+export function buildBackgroundPrompt(size: SizeTemplate): string {
+  const family = getSizeFamily(size);
+  return [
+    `把这张纯背景图延展铺满 ${size.width}×${size.height} 的画布。`,
+    `${FAMILY_BG_GUIDE[family]}。`,
+    '严格保持原有品牌调性、色彩、光影、材质与装饰风格一致；只自然补全边缘背景与留白，不留黑边白边。',
+    '输入是不含文字、Logo、产品、人物的纯背景；',
+    '严禁生成或臆造任何文字、Logo、产品、人物、按钮、图形元素、水印、边框、伪影；画面只能是背景与装饰。',
+  ].join('');
+}
+
 export function describeKeptElements(types: LayerType[]): string {
   const order: LayerType[] = ['logo', 'title', 'subtitle', 'subject', 'cta', 'element'];
   const labels = order.filter((t) => types.includes(t)).map((t) => LAYER_TYPE_LABELS[t]);
