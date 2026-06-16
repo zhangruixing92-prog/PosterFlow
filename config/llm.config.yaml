@@ -10,11 +10,11 @@ vision:
   max_tokens: 2000
 
 image:
-  # 图生图：yhmx 网关 gpt-image-2-all（OpenAI Images API 兼容）
-  provider: yhmx
-  outpaint_model: gpt-image-2-all
-  expand_model: gpt-image-2-all
-  base_url: https://yhmx.work
+  # 图生图：阿里云通义万相 wan2.7-image（DashScope multimodal-generation，与 vision 同一个 DashScope key）
+  provider: aliyun
+  outpaint_model: wan2.7-image
+  expand_model: wan2.7-image
+  base_url: https://dashscope.aliyuncs.com
   generation_endpoint: /v1/images/generations
   edit_endpoint: /v1/images/edits
   resolution: 2k
