@@ -1,4 +1,3 @@
-import { DEFAULT_SIZES } from '../config/sizes';
 import type { LayerRect, PosterProject, SizeElementSpec, SizeTemplate } from '../types/poster';
 
 const STORAGE_KEY = 'posterflow_project';
@@ -8,7 +7,7 @@ const emptyProject = (): PosterProject => ({
   imageWidth: 0,
   imageHeight: 0,
   layers: [],
-  selectedSizeIds: DEFAULT_SIZES.map((size) => size.id),
+  selectedSizeIds: [],
   customSizes: [],
 });
 
@@ -21,7 +20,7 @@ export function loadProject(): PosterProject {
       ...emptyProject(),
       ...parsed,
       layers: parsed.layers ?? [],
-      selectedSizeIds: parsed.selectedSizeIds ?? DEFAULT_SIZES.map((size) => size.id),
+      selectedSizeIds: parsed.selectedSizeIds ?? [],
       customSizes: parsed.customSizes ?? [],
     };
   } catch {

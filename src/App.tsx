@@ -66,7 +66,8 @@ function App() {
   const [sizeElementSpecs, setSizeElementSpecs] = useState<Record<string, SizeElementSpec>>({});
   const [pickingSizeId, setPickingSizeId] = useState<string | null>(null);
   const [pastingSizeId, setPastingSizeId] = useState<string | null>(null);
-  const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>(DEFAULT_SIZES.map((size) => size.id));
+  // 默认不全选尺寸，由用户按需勾选
+  const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
