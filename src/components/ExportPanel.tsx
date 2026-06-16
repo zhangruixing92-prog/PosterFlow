@@ -70,7 +70,7 @@ export function ExportPanel({
           </p>
           {progressText && <p className="generation-progress">{progressText}</p>}
           {!isGenerating && (
-            <p className="generation-hint">每个尺寸由图像模型（wan2.7-image）直接图生图出整图</p>
+            <p className="generation-hint">每个尺寸由图像模型（gpt-image-2-all）直接图生图出整图</p>
           )}
         </div>
         <div className="export-actions">

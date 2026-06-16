@@ -10,11 +10,16 @@ vision:
   max_tokens: 2000
 
 image:
-  # 图生图：用 wan2.7-image 直接生成目标尺寸整图（无本地兜底）
-  outpaint_model: wan2.7-image
-  expand_model: wan2.7-image
-  outpaint_endpoint: /api/v1/services/aigc/image2image/image-synthesis
-  expand_endpoint: /api/v1/services/aigc/image2image/image-synthesis
+  # 图生图：yhmx 网关 gpt-image-2-all（OpenAI Images API 兼容）
+  provider: yhmx
+  outpaint_model: gpt-image-2-all
+  expand_model: gpt-image-2-all
+  base_url: https://yhmx.work
+  generation_endpoint: /v1/images/generations
+  edit_endpoint: /v1/images/edits
+  resolution: 2k
+  outpaint_endpoint: /v1/images/generations
+  expand_endpoint: /v1/images/generations
   task_endpoint: /api/v1/tasks
   expand_prompt: 把主视觉海报适配为目标尺寸整图，铺满画布、补全背景，严格保持品牌调性、色彩、光影、材质与版式一致；不改写或新增任何文字、Logo、产品、人物、图形，不要水印、边框、伪影。
   poll_interval_ms: 2500

@@ -11,13 +11,16 @@ export interface VisionModelSettings {
 }
 
 export function getVisionModelSettings(): VisionModelSettings {
+  const baseUrl =
+    import.meta.env.VITE_VISION_BASE_URL ||
+    'https://dashscope.aliyuncs.com/compatible-mode/v1';
   return {
     enabled: import.meta.env.VITE_VISION_ENABLED === 'true',
     provider: import.meta.env.VITE_VISION_PROVIDER || 'aliyun',
     model: import.meta.env.VITE_VISION_MODEL || 'qwen3-vl-plus',
-    baseUrl:
-      import.meta.env.VITE_VISION_BASE_URL ||
-      'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    baseUrl: import.meta.env.DEV
+      ? '/dashscope-api/compatible-mode/v1'
+      : baseUrl,
     maxTokens: Number(import.meta.env.VITE_VISION_MAX_TOKENS || '2000'),
     apiKey: import.meta.env.VITE_DASHSCOPE_API_KEY || '',
     configPath: import.meta.env.VITE_LLM_CONFIG_PATH || '~/.config/llm.yaml',

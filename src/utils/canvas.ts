@@ -29,31 +29,49 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+function toImageLoadSrc(src: string): string {
+  if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+  return `/img-proxy?url=${encodeURIComponent(src)}`;
+}
+
+/**
+ * 将图片（URL 或 dataURL）缩放到精确目标尺寸，返回 dataURL。
+ */
+export async function resizeToDataUrl(
+  src: string,
+  targetWidth: number,
+  targetHeight: number,
+): Promise<string> {
+  const image = await loadImage(toImageLoadSrc(src));
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('无法创建画布上下文');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+  return canvas.toDataURL('image/png');
+}
+
 /**
  * 下载模型返回的结果图（经本地 /img-proxy 绕过 CORS），缩放到精确目标尺寸，返回 dataURL。
- * 模型按可用像素范围出图，最终尺寸在此对齐到目标宽高。
  */
 export async function downloadAndResize(
   resultUrl: string,
   targetWidth: number,
   targetHeight: number,
 ): Promise<string> {
+  if (resultUrl.startsWith('data:')) {
+    return resizeToDataUrl(resultUrl, targetWidth, targetHeight);
+  }
   const proxied = `/img-proxy?url=${encodeURIComponent(resultUrl)}`;
   const response = await fetch(proxied);
   if (!response.ok) throw new Error(`下载结果图失败 HTTP ${response.status}`);
   const blob = await response.blob();
   const objectUrl = URL.createObjectURL(blob);
   try {
-    const image = await loadImage(objectUrl);
-    const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('无法创建画布上下文');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-    return canvas.toDataURL('image/png');
+    return await resizeToDataUrl(objectUrl, targetWidth, targetHeight);
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
