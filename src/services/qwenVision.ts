@@ -1,5 +1,5 @@
 import { getVisionModelSettings, type VisionSizeAnalysis } from '../config/visionModel';
-import type { LayerType } from '../types/poster';
+import type { LayerType, PlannedBox, SizeFamily } from '../types/poster';
 import { LAYER_TYPE_LABELS } from '../types/poster';
 import { describeError, logger } from '../utils/logger';
 
@@ -186,6 +186,94 @@ export async function extractMasterContent(masterImageDataUrl: string): Promise<
     });
     throw error;
   }
+}
+
+export interface LayoutElementInput {
+  /** 元素贴片 id */
+  id: string;
+  type: LayerType;
+  /** 贴片真实宽高比 = 宽/高，约束模型只能等比缩放 */
+  aspectRatio: number;
+}
+
+export interface PlanLayoutInput {
+  masterImageDataUrl: string;
+  sizeName: string;
+  sizeWidth: number;
+  sizeHeight: number;
+  family: SizeFamily;
+  elements: LayoutElementInput[];
+}
+
+const FAMILY_LAYOUT_BRIEF: Record<SizeFamily, string> = {
+  portrait: '竖版：上方文案（Logo/副标题/主标题/CTA），下方主视觉与背景',
+  landscape: '横版/Banner：左侧背景延展，右侧文案；主视觉若保留需完整不裁切',
+  square: '方版：上方文案区、下方背景，整体均衡',
+};
+
+/**
+ * 用 qwen-vl 规划目标尺寸下各元素的摆放位置（只输出坐标，不碰像素）。
+ * 返回每个元素在目标画布上的归一化布局框（0~1）；高度按贴片真实宽高比重算，
+ * 强制等比，避免模型给出非等比尺寸。非法/缺失由 layoutPlanner 校正或回退规则。
+ */
+export async function planLayoutWithVision(input: PlanLayoutInput): Promise<PlannedBox[]> {
+  const settings = getVisionModelSettings();
+  if (!settings.enabled || !settings.apiKey) {
+    throw new Error(`视觉模型未配置，请在 ${settings.configPath} 设置 api_key`);
+  }
+
+  const elementGuide = input.elements
+    .map((el) => `- id="${el.id}" 类型=${LAYER_TYPE_LABELS[el.type]}(${el.type}) 宽高比=${el.aspectRatio.toFixed(3)}`)
+    .join('\n');
+
+  const prompt = `你是资深视觉设计师，要把主视觉海报（图1）的固定元素重新排布到一个新尺寸画布上。
+你只决定每个元素「放在哪、多大」，不修改任何元素本身的内容。
+
+目标画布：${input.sizeName}（${input.sizeWidth}×${input.sizeHeight}）
+版式风格：${FAMILY_LAYOUT_BRIEF[input.family]}
+
+需要排布的元素（必须全部摆放，且只能整体等比缩放）：
+${elementGuide}
+
+布局要求：
+- 坐标用归一化值（0~1），原点在画布左上角，x 向右、y 向下。
+- 每个元素给左上角 x、y 与宽度 w（归一化）。高度由系统按宽高比自动计算，你不必给 h。
+- 元素之间不重叠、不超出画布、留白自然合理，符合版式风格与视觉层级。
+- 人物/主视觉(subject) 完整呈现、不被裁切。
+
+只返回 JSON 数组，每项形如：
+[{"id":"<元素id>","x":0.1,"y":0.05,"w":0.5}, ...]`;
+
+  logger.info('vision.planLayout.request', {
+    model: settings.model,
+    size: `${input.sizeName} ${input.sizeWidth}x${input.sizeHeight}`,
+    family: input.family,
+    elementCount: input.elements.length,
+  });
+
+  const content = await callVisionModelRaw(settings, prompt, [input.masterImageDataUrl]);
+  const parsed = parseJSONSafe<Array<{ id?: unknown; x?: unknown; y?: unknown; w?: unknown }>>(content);
+  if (!Array.isArray(parsed)) throw new Error('布局模型返回格式非数组');
+
+  const byId = new Map(input.elements.map((el) => [el.id, el]));
+  const ratio = input.sizeWidth / input.sizeHeight;
+
+  const boxes: PlannedBox[] = [];
+  for (const item of parsed) {
+    const id = typeof item.id === 'string' ? item.id : '';
+    const el = byId.get(id);
+    if (!el) continue;
+    const x = Number(item.x);
+    const y = Number(item.y);
+    const w = Number(item.w);
+    if (![x, y, w].every((n) => Number.isFinite(n)) || w <= 0) continue;
+    // 高度按贴片真实宽高比重算，强制等比：h_norm = w_norm * (W/H) / aspectRatio
+    const h = (w * ratio) / Math.max(0.01, el.aspectRatio);
+    boxes.push({ type: el.type, spriteId: el.id, x, y, w, h });
+  }
+
+  logger.info('vision.planLayout.ok', { returned: boxes.length, expected: input.elements.length });
+  return boxes;
 }
 
 /**
