@@ -31,3 +31,81 @@
 - 无 AI Key 时走本地规则，效果与 AI 模式有差异。
 - SAM 自动分割、模版 JSON 导入等为后续扩展，尚未落地。
 
+## 技术栈
+
+- **前端框架**：React 19 + TypeScript
+- **构建工具**：Vite 8
+- **画布渲染**：Konva / react-konva（主图框选、尺寸合成）
+- **打包导出**：JSZip（批量 ZIP 下载）
+- **AI 能力**：
+  - 视觉理解 / 排版：Qwen-VL（阿里云 DashScope，OpenAI 兼容接口）
+  - 图生图 / 扩图：`gpt-image-2-all`（通过 yhmx 网关，OpenAI Images API 兼容）
+
+## 快速开始
+
+### 环境要求
+
+- Node.js（建议 18+）
+- npm
+
+### 安装与启动
+
+```bash
+# 开发模式（热更新），默认 http://localhost:5000
+npm run start          # 等价于 bash scripts/start.sh，会自动安装依赖
+
+# 或手动执行
+npm install
+npm run dev
+```
+
+其他脚本：
+
+```bash
+npm run build          # 类型检查 + 生产构建
+npm run preview        # 预览生产包
+npm run start prod     # 构建并以生产模式预览（端口 5000）
+npm run lint           # ESLint 检查
+```
+
+## AI 配置
+
+应用的模型行为由 `config/llm.config.yaml` 定义（视觉模型、图像模型、扩图提示词、轮询超时等）。
+
+**API Key 不写在仓库里**，仅从 `config_path` 指向的文件读取，默认路径：
+
+```
+~/.config/llm.yaml
+```
+
+请在该文件中配置 `api_key` 后再启动；若文件缺失，AI 生成不可用，应用回退到本地规则合成。可通过环境变量 `VITE_LLM_CONFIG_PATH` 覆盖配置文件位置。
+
+## 目录结构
+
+```
+PosterFlow/
+├── config/
+│   ├── llm.config.yaml        # AI 模型与扩图策略配置
+│   └── loadLlmConfig.ts       # 配置加载逻辑
+├── scripts/
+│   ├── start.sh               # 启动脚本（dev / prod）
+│   └── test_extract_master.py # 主视觉提取相关测试脚本
+├── src/
+│   ├── components/            # UI 面板：上传、框选、尺寸选择、精调、导出、图层、历史
+│   ├── config/               # 尺寸规格、尺寸族、内容规格、模型配置
+│   ├── engines/              # 导出引擎
+│   ├── services/             # 生成流水线、图像生成、提示词构建、Qwen 视觉
+│   ├── utils/                # 画布、元素拾取、历史、存储、日志
+│   └── types/                # 类型定义
+├── public/                   # 静态资源
+├── index.html
+└── vite.config.ts
+```
+
+## 工作流程
+
+1. **上传主视觉海报** → 在画布上框选需保留的元素（产品、文案、Logo、人物）。
+2. **选择目标尺寸** → 勾选竖版 / 方版 / 横版 / Banner 等运营规格。
+3. **生成** → AI 排版决定元素位置，扩图延展背景装饰区；失败时本地规则兜底。
+4. **精调（可选）** → 对单个尺寸调整模型、输入图、提示词并重新生成。
+5. **批量导出** → 一键 ZIP 打包下载所有成图。
